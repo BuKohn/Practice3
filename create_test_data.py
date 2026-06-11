@@ -7,12 +7,25 @@ BASE_LEVEL = 400
 
 for t in range(1001):
     a = int(50 * random.random() + BASE_LEVEL)
-    data.append((t, a))
+    if (t // 100) % 2 == 0:
+        klass = 1
+    elif t // 100 == 1:
+        klass = 2
+    elif t // 100 == 3:
+        klass = 3
+    elif t // 100 == 5:
+        klass = 4
+    elif t // 100 == 7:
+        klass = 5
+    else:
+        klass = 6
+
+    data.append((t, a, klass))
 
     if 100 <= t <= 200:
         BASE_LEVEL += 1
     elif 300 <= t <= 400:
-        BASE_LEVEL -= 0.25
+        BASE_LEVEL -= 1
     elif t == 540:
         BASE_LEVEL = 200
     elif t == 560:
