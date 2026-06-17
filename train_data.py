@@ -102,4 +102,4 @@ for segment, label in zip(all_segments, all_labels):
     current_t += SEGMENT_LENGTH
 
 df = pd.DataFrame({'t': all_t, 'a': all_a, 'klass': all_klass})
-df.to_csv('train_data.csv', index=False, header=False)
+df.to_csv('val_data.csv', index=False, header=False)
