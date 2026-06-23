@@ -3,88 +3,73 @@ import pandas as pd
 
 np.random.seed(42)
 
+# ПАРАМЕТРЫ В МАСШТАБЕ РЕАЛЬНЫХ ДАННЫХ
 SEGMENT_LENGTH = 100
 SAMPLES_PER_CLASS = 200
-BASE_LEVEL = 0.65
-NOISE_LEVEL = 0.03
+BASE_LEVEL = 0.60        # ← как в реальных данных
+NOISE_LEVEL = 0.003      # ← очень маленький шум (0.5%)
+JUMP_AMPLITUDE = 0.3     # ← скачок в 100 раз больше шума
 
 def generate_stable(n_samples):
+    """Класс 1: Стабильный — только шум, без тренда"""
     segments = []
     for _ in range(n_samples):
-        level = BASE_LEVEL + np.random.uniform(-0.02, 0.02)
+        level = BASE_LEVEL + np.random.uniform(-0.01, 0.01)
         signal = level + np.random.normal(0, NOISE_LEVEL, SEGMENT_LENGTH)
         segments.append(signal)
     return np.array(segments)
 
 def generate_gradual_increase(n_samples):
+    """Класс 2: Плавный рост от 0.6 до 0.8-1.0"""
     segments = []
     for _ in range(n_samples):
-        start = BASE_LEVEL + np.random.uniform(-0.03, 0.03)
-        increase = np.random.uniform(0.08, 0.15)
-        end = start + increase
+        start = BASE_LEVEL + np.random.uniform(-0.02, 0.02)
+        end = start + np.random.uniform(0.15, 0.35)
         trend = np.linspace(start, end, SEGMENT_LENGTH)
         signal = trend + np.random.normal(0, NOISE_LEVEL, SEGMENT_LENGTH)
         segments.append(signal)
     return np.array(segments)
 
 def generate_gradual_decrease(n_samples):
+    """Класс 3: Плавное падение от 0.8-1.0 до 0.6"""
     segments = []
     for _ in range(n_samples):
-        start = BASE_LEVEL + np.random.uniform(0.08, 0.15)
-        decrease = np.random.uniform(0.08, 0.15)
-        end = start - decrease
+        start = BASE_LEVEL + np.random.uniform(0.15, 0.35)
+        end = start - np.random.uniform(0.15, 0.35)
         trend = np.linspace(start, end, SEGMENT_LENGTH)
         signal = trend + np.random.normal(0, NOISE_LEVEL, SEGMENT_LENGTH)
         segments.append(signal)
     return np.array(segments)
 
-def generate_sharp_drop(n_samples):
+def generate_sharp_changes(n_samples):
+    """Класс 4: Резкие скачки (обвал/подъем/оба)"""
     segments = []
     for _ in range(n_samples):
         signal = np.ones(SEGMENT_LENGTH) * BASE_LEVEL
-        drop_start = np.random.randint(30, 60)
-        drop_end = drop_start + np.random.randint(15, 25)
-        signal[drop_start:drop_end] = BASE_LEVEL - np.random.uniform(0.15, 0.25)
+        
+        # 1-3 скачка в случайных позициях
+        n_jumps = np.random.randint(1, 4)
+        for _ in range(n_jumps):
+            pos = np.random.randint(20, 80)
+            duration = np.random.randint(5, 15)  # Короткие скачки!
+            amplitude = np.random.choice([-1, 1]) * JUMP_AMPLITUDE
+            signal[pos:pos+duration] += amplitude
+        
         signal += np.random.normal(0, NOISE_LEVEL, SEGMENT_LENGTH)
         segments.append(signal)
     return np.array(segments)
 
-def generate_sharp_rise(n_samples):
-    segments = []
-    for _ in range(n_samples):
-        signal = np.ones(SEGMENT_LENGTH) * BASE_LEVEL
-        rise_start = np.random.randint(30, 60)
-        rise_end = rise_start + np.random.randint(15, 25)
-        signal[rise_start:rise_end] = BASE_LEVEL + np.random.uniform(0.15, 0.25)
-        signal += np.random.normal(0, NOISE_LEVEL, SEGMENT_LENGTH)
-        segments.append(signal)
-    return np.array(segments)
-
-def generate_drop_and_rise(n_samples):
-    segments = []
-    for _ in range(n_samples):
-        signal = np.ones(SEGMENT_LENGTH) * BASE_LEVEL
-        rise_start = np.random.randint(25, 35)
-        rise_end = rise_start + np.random.randint(18, 22)
-        signal[rise_start:rise_end] = BASE_LEVEL + np.random.uniform(0.15, 0.25)
-        drop_start = rise_end + np.random.randint(0, 5)
-        drop_end = drop_start + np.random.randint(18, 22)
-        signal[drop_start:drop_end] = BASE_LEVEL - np.random.uniform(0.15, 0.25)
-        signal += np.random.normal(0, NOISE_LEVEL, SEGMENT_LENGTH)
-        segments.append(signal)
-    return np.array(segments)
-
+# Генерация
 class1 = generate_stable(SAMPLES_PER_CLASS)
 class2 = generate_gradual_increase(SAMPLES_PER_CLASS)
 class3 = generate_gradual_decrease(SAMPLES_PER_CLASS)
-class4 = generate_sharp_drop(SAMPLES_PER_CLASS)
-class5 = generate_sharp_rise(SAMPLES_PER_CLASS)
-class6 = generate_drop_and_rise(SAMPLES_PER_CLASS)
+class4 = generate_sharp_changes(SAMPLES_PER_CLASS)
 
-all_segments = np.vstack([class1, class2, class3, class4, class5, class6])
-all_labels = np.array([1]*SAMPLES_PER_CLASS + [2]*SAMPLES_PER_CLASS + [3]*SAMPLES_PER_CLASS +
-                      [4]*SAMPLES_PER_CLASS + [5]*SAMPLES_PER_CLASS + [6]*SAMPLES_PER_CLASS)
+all_segments = np.vstack([class1, class2, class3, class4])
+all_labels = np.array([1]*SAMPLES_PER_CLASS + [2]*SAMPLES_PER_CLASS + 
+                      [3]*SAMPLES_PER_CLASS + [4]*SAMPLES_PER_CLASS)
 
+# Сохранение
 all_t, all_a, all_klass = [], [], []
 current_t = 0
 for segment, label in zip(all_segments, all_labels):
@@ -95,3 +80,7 @@ for segment, label in zip(all_segments, all_labels):
 
 df = pd.DataFrame({'t': all_t, 'a': all_a, 'klass': all_klass})
 df.to_csv('train_data_scaled.csv', index=False, header=False)
+
+print(f"✓ Создан train_data_real_scale.csv")
+print(f"Диапазон: [{df['a'].min():.3f}, {df['a'].max():.3f}]")
+print(f"Соотношение скачок/шум: {JUMP_AMPLITUDE/NOISE_LEVEL:.0f}x")
